@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QApplication
 import sys
 
 from app.dashboard import JarvisDashboard
+from app.assistant_controller import AssistantController
 
 
 def main():
@@ -19,6 +20,10 @@ def main():
     window = JarvisDashboard()
     window.resize(1600, 900)
     window.show()
+
+    assistant = AssistantController(dashboard=window)
+    assistant.start()
+
     sys.exit(app.exec())
 
 
