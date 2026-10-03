@@ -1,6 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton
 from PyQt6.QtCore import QTimer, Qt
-from PyQt6.QtGui import QFont
 
 
 class JarvisDashboard(QWidget):
@@ -68,12 +67,11 @@ class JarvisDashboard(QWidget):
                 border-radius: 12px;
                 padding: 10px;
             }
-            .vlr {
-                border: 1px solid #0ae0ff;
-                border-radius: 10px;
-            }
         ''')
 
+        self.status_label = None
+        self.assistant_label = None
+        self.listening_label = None
         self.build_ui()
         self.start_clock()
 
@@ -170,15 +168,10 @@ class JarvisDashboard(QWidget):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(14)
 
-        schedule = self.create_schedule_card()
-        activity = self.create_recent_activity()
-        commands = self.create_commands_panel()
-        shortcuts = self.create_shortcuts_panel()
-
-        layout.addWidget(schedule)
-        layout.addWidget(activity)
-        layout.addWidget(commands)
-        layout.addWidget(shortcuts)
+        layout.addWidget(self.create_schedule_card())
+        layout.addWidget(self.create_recent_activity())
+        layout.addWidget(self.create_commands_panel())
+        layout.addWidget(self.create_shortcuts_panel())
         return panel
 
     def create_weather_card(self):
@@ -247,6 +240,8 @@ class JarvisDashboard(QWidget):
         layout.addWidget(sound)
 
         status = QLabel("LISTENING...")
+        status.setObjectName("voiceStatus")
+        self.listening_label = status
         status.setStyleSheet("color: #8be9ff; font-size: 14px; letter-spacing: 2px;")
         status.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(status)
@@ -271,6 +266,7 @@ class JarvisDashboard(QWidget):
             min-height: 340px;
             min-width: 340px;
         ''')
+        self.assistant_label = core
         layout.addWidget(core)
         return widget
 
@@ -307,6 +303,8 @@ class JarvisDashboard(QWidget):
         layout.addWidget(mic)
 
         prompt = QLabel("How can I help you today?")
+        prompt.setObjectName("promptText")
+        self.status_label = prompt
         prompt.setStyleSheet("color: #dff7ff; font-size: 18px; letter-spacing: 1px;")
         prompt.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(prompt)
@@ -425,6 +423,18 @@ class JarvisDashboard(QWidget):
             layout.addWidget(btn, idx // 3, idx % 3)
         return widget
 
+    def set_status_message(self, text: str):
+        if self.status_label is not None:
+            self.status_label.setText(text)
+
+    def set_assistant_response(self, text: str):
+        if self.assistant_label is not None:
+            self.assistant_label.setText(f"J.A.R.V.I.S.\n{text[:24]}")
+
+    def set_listening_state(self, is_listening: bool):
+        if self.listening_label is not None:
+            self.listening_label.setText("LISTENING..." if is_listening else "STANDBY")
+
     def start_clock(self):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_clock)
@@ -434,7 +444,6 @@ class JarvisDashboard(QWidget):
         from datetime import datetime
         now = datetime.now()
         time_str = now.strftime("%H:%M")
-        date_str = now.strftime("%a, %b %d, %Y")
         label = self.findChild(QLabel, "timeLabel")
         if label is not None:
             label.setText(time_str)
