@@ -1,12 +1,23 @@
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton
 from PyQt6.QtCore import QTimer, Qt
 
+from core.model_provider import ModelProvider
+from core.system_monitor import SystemMonitor
+
 
 class JarvisDashboard(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("J.A.R.V.I.S.")
         self.setObjectName("mainWindow")
+        self.model_provider = ModelProvider()
+        self.status_label = None
+        self.assistant_label = None
+        self.listening_label = None
+        self.cpu_label = None
+        self.memory_label = None
+        self.disk_label = None
+        self.ai_status_label = None
         self.setStyleSheet('''
             QWidget {
                 background: #050d1d;
@@ -68,12 +79,9 @@ class JarvisDashboard(QWidget):
                 padding: 10px;
             }
         ''')
-
-        self.status_label = None
-        self.assistant_label = None
-        self.listening_label = None
         self.build_ui()
         self.start_clock()
+        self.refresh_status()
 
     def build_ui(self):
         root = QHBoxLayout(self)
@@ -206,9 +214,9 @@ class JarvisDashboard(QWidget):
         layout.addWidget(title)
 
         bars = [
-            ("Disk Usage", "42%"),
-            ("CPU", "58%"),
-            ("Memory", "18%"),
+            ("Disk Usage", "0%"),
+            ("CPU", "0%"),
+            ("Memory", "0%"),
         ]
         for label, percent in bars:
             row = QWidget()
@@ -216,7 +224,15 @@ class JarvisDashboard(QWidget):
             row_layout.setContentsMargins(0, 0, 0, 0)
             l = QLabel(label)
             l.setStyleSheet("font-size: 12px; color: #dfefff;")
-            v = QLabel(percent)
+            if label == "Disk Usage":
+                v = QLabel(percent)
+                self.disk_label = v
+            elif label == "CPU":
+                v = QLabel(percent)
+                self.cpu_label = v
+            else:
+                v = QLabel(percent)
+                self.memory_label = v
             v.setStyleSheet("font-size: 12px; color: #82ecff;")
             row_layout.addWidget(l)
             row_layout.addStretch()
@@ -423,6 +439,23 @@ class JarvisDashboard(QWidget):
             layout.addWidget(btn, idx // 3, idx % 3)
         return widget
 
+    def refresh_status(self):
+        metrics = SystemMonitor.get_status()
+        if self.cpu_label is not None:
+            self.cpu_label.setText(f"{metrics['cpu']:.0f}%")
+        if self.memory_label is not None:
+            self.memory_label.setText(f"{metrics['memory']:.0f}%")
+        if self.disk_label is not None:
+            self.disk_label.setText(f"{metrics['disk']:.0f}%")
+
+        local_ai_ready = self.model_provider.is_available()
+        if self.listening_label is not None:
+            self.listening_label.setText("READY" if local_ai_ready else "OFFLINE")
+        if self.assistant_label is not None:
+            self.assistant_label.setText("J.A.R.V.I.S.\nREADY" if local_ai_ready else "J.A.R.V.I.S.\nOFFLINE")
+        if self.status_label is not None:
+            self.status_label.setText("Local AI: ready" if local_ai_ready else "Local AI: offline")
+
     def set_status_message(self, text: str):
         if self.status_label is not None:
             self.status_label.setText(text)
@@ -447,6 +480,8 @@ class JarvisDashboard(QWidget):
         label = self.findChild(QLabel, "timeLabel")
         if label is not None:
             label.setText(time_str)
+        if now.second % 5 == 0:
+            self.refresh_status()
 
 
 if __name__ == "__main__":
