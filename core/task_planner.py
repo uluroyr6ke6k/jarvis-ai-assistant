@@ -4,17 +4,19 @@ from typing import Any, Dict, List
 
 from core.automation_engine import AutomationEngine
 from core.context_manager import ContextManager
+from core.learning_assistant import LearningAssistant
 from core.session_memory import SessionMemory
 
 
 class TaskPlanner:
-    """Turns natural language requests into actionable executable task plans."""
+    """Turns natural language requests into actionable executable task plans and learns from outcomes."""
 
     def __init__(self):
         self.memory = SessionMemory()
         self.memory.load()
         self.automation = AutomationEngine()
         self.context = ContextManager()
+        self.learning = LearningAssistant()
 
     def plan(self, request: str) -> Dict[str, Any]:
         text = (request or "").strip()
@@ -54,8 +56,14 @@ class TaskPlanner:
         if not tasks:
             tasks.append("help")
 
-        self.memory.log("task_plan_created", {"request": text, "enriched_prompt": enriched, "tasks": tasks})
-        return {"status": "ok", "request": text, "tasks": tasks}
+        ranked_tasks = self.learning.improve_plan(text, tasks)
+        self.memory.log("task_plan_created", {"request": text, "enriched_prompt": enriched, "tasks": ranked_tasks})
+        return {
+            "status": "ok",
+            "request": text,
+            "tasks": ranked_tasks,
+            "learning_summary": self.learning.generate_learning_summary(),
+        }
 
     def execute(self, request: str) -> Dict[str, Any]:
         plan = self.plan(request)
@@ -65,13 +73,15 @@ class TaskPlanner:
         results = []
         for task in plan["tasks"]:
             result = self.automation.execute_task(task)
-            results.append({"task": task, "result": result})
+            evaluation = self.learning.evaluate_task(task, result)
+            results.append({"task": task, "result": result, "evaluation": evaluation})
 
         outcome = {
             "status": "ok",
             "request": request,
             "tasks": plan["tasks"],
             "results": results,
+            "learning_summary": self.learning.generate_learning_summary(),
         }
         self.memory.log("task_plan_executed", outcome)
         return outcome
