@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, Any
 
+from app.response_formatter import ResponseFormatter
 from core.content_pipeline import ContentPipeline
 from core.system_monitor import SystemMonitor
 
@@ -71,6 +72,20 @@ class AssistantController:
         cleaned = cleaned.replace("video", "").replace("content", "")
         cleaned = " ".join(cleaned.split())
         return cleaned.strip() or default
+
+    def process_text(self, text: str) -> str:
+        result = self.handle_command(text)
+        action_type = result.get("type", "fallback")
+
+        if action_type == "system_status":
+            return ResponseFormatter.format_system_status(result)
+        if action_type == "content_generation":
+            return ResponseFormatter.format_content_bundle(result)
+        if action_type == "image_generation":
+            return ResponseFormatter.format_image_result(result)
+        if action_type == "blender_generation":
+            return ResponseFormatter.format_blender_result(result)
+        return ResponseFormatter.format_fallback(text)
 
     def start(self):
         if self.dashboard is not None:
