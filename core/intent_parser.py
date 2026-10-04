@@ -1,60 +1,71 @@
 from __future__ import annotations
 
-import re
-from typing import Dict, Any
+from typing import Any, Dict, List
 
 
 class IntentParser:
-    """Heuristic parser for Jarvis voice and text commands."""
+    """Heuristic parser for chained commands and workflow-style instructions."""
 
     @staticmethod
     def parse(command: str) -> Dict[str, Any]:
         text = (command or "").strip()
         if not text:
-            return {"type": "empty", "topic": "", "raw": text}
+            return {"type": "empty", "topic": "", "raw": text, "steps": []}
 
         normalized = text.lower()
 
-        if any(keyword in normalized for keyword in ["status", "health", "check system", "system status"]):
-            return {"type": "system_status", "topic": "system", "raw": text}
+        if "|" in text or ";" in text:
+            steps = [part.strip() for part in re.split(r"[|;]", text) if part.strip()]
+            return {
+                "type": "workflow_chain",
+                "topic": "automation",
+                "raw": text,
+                "steps": steps,
+            }
+
+        if any(keyword in normalized for keyword in ["status", "health", "system status", "check system"]):
+            return {"type": "system_status", "topic": "system", "raw": text, "steps": ["status"]}
+
+        if any(keyword in normalized for keyword in ["remember", "save fact", "store fact"]):
+            fact = IntentParser._extract_after_keyword(text, ["remember", "save fact", "store fact"])
+            return {"type": "remember_fact", "topic": fact or "memory", "raw": text, "steps": [f"remember_fact:{fact or 'new fact'}"]}
+
+        if any(keyword in normalized for keyword in ["note", "save note", "write note"]):
+            note = IntentParser._extract_after_keyword(text, ["note", "save note", "write note"])
+            return {"type": "save_note", "topic": note or "note", "raw": text, "steps": [f"note:{note or 'new note'}"]}
+
+        if any(keyword in normalized for keyword in ["youtube", "open youtube"]):
+            return {"type": "open_app", "topic": "youtube", "raw": text, "steps": ["open_youtube"]}
+
+        if any(keyword in normalized for keyword in ["chrome", "open chrome"]):
+            return {"type": "open_app", "topic": "chrome", "raw": text, "steps": ["open_chrome"]}
+
+        if any(keyword in normalized for keyword in ["files", "explorer", "file explorer"]):
+            return {"type": "open_app", "topic": "files", "raw": text, "steps": ["open_files"]}
+
+        if any(keyword in normalized for keyword in ["settings", "open settings"]):
+            return {"type": "open_app", "topic": "settings", "raw": text, "steps": ["open_settings"]}
+
+        if any(keyword in normalized for keyword in ["screenshot", "take screenshot"]):
+            return {"type": "system_action", "topic": "screenshot", "raw": text, "steps": ["take_screenshot"]}
+
+        if any(keyword in normalized for keyword in ["time", "what time"]):
+            return {"type": "system_action", "topic": "time", "raw": text, "steps": ["time"]}
 
         if any(keyword in normalized for keyword in ["help", "what can you do", "commands"]):
-            return {"type": "help", "topic": "assistant", "raw": text}
+            return {"type": "help", "topic": "assistant", "raw": text, "steps": ["help"]}
 
-        if any(keyword in normalized for keyword in ["blender", "3d scene", "3d asset", "render scene"]):
-            return {"type": "blender_generation", "topic": IntentParser._extract_topic(text), "raw": text}
-
-        if any(keyword in normalized for keyword in ["image", "thumbnail", "cover art", "poster", "hero image"]):
-            return {"type": "image_generation", "topic": IntentParser._extract_topic(text), "raw": text}
-
-        if any(keyword in normalized for keyword in ["youtube", "video idea", "content pack", "content brief", "video project", "video script"]):
-            return {"type": "content_generation", "topic": IntentParser._extract_topic(text), "raw": text}
-
-        if any(keyword in normalized for keyword in ["create", "generate", "make", "build"]):
-            if "image" in normalized:
-                return {"type": "image_generation", "topic": IntentParser._extract_topic(text), "raw": text}
-            if "blender" in normalized or "3d" in normalized:
-                return {"type": "blender_generation", "topic": IntentParser._extract_topic(text), "raw": text}
-            if "youtube" in normalized or "video" in normalized or "content" in normalized:
-                return {"type": "content_generation", "topic": IntentParser._extract_topic(text), "raw": text}
-
-        return {"type": "fallback", "topic": "", "raw": text}
+        return {"type": "fallback", "topic": "", "raw": text, "steps": [text]}
 
     @staticmethod
-    def _extract_topic(command: str) -> str:
-        cleaned = command.strip()
-        for keyword in [
-            "create ", "generate ", "make ", "build ",
-            "a ", "an ", "the ",
-            "youtube ", "video ", "content ", "image ", "thumbnail ", "cover ",
-            "blender ", "3d ", "scene ", "asset ", "idea ",
-        ]:
-            if cleaned.lower().startswith(keyword):
-                cleaned = cleaned[len(keyword):]
-                break
+    def _extract_after_keyword(text: str, keywords: List[str]) -> str:
+        lowered = text.lower()
+        for keyword in keywords:
+            idx = lowered.find(keyword)
+            if idx >= 0:
+                result = text[idx + len(keyword):].strip(" :-")
+                return result
+        return ""
 
-        cleaned = re.sub(r"\b(status|health|check|system|assistant|jarvis|help)\b", "", cleaned, flags=re.IGNORECASE)
-        cleaned = cleaned.strip(" .,-_:/")
-        if not cleaned:
-            return "AI automation workflow"
-        return cleaned
+
+import re
