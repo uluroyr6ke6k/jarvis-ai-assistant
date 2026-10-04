@@ -1,91 +1,78 @@
-import threading
-from typing import Optional
+from __future__ import annotations
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from typing import Dict, Any
 
-from core.ai_engine import get_ai_engine
-from core.command_executor import get_executor
-from core.voice_engine import get_voice_engine
+from core.content_pipeline import ContentPipeline
+from core.system_monitor import SystemMonitor
 
 
-class AssistantController(QObject):
-    """Controller that bridges voice input, AI interpretation, and command execution."""
+class AssistantController:
+    """Routes user intents to the right functional modules."""
 
-    response_ready = pyqtSignal(str)
-    status_ready = pyqtSignal(str)
-    listening_ready = pyqtSignal(bool)
-
-    def __init__(self, dashboard=None, parent=None):
-        super().__init__(parent)
+    def __init__(self, dashboard=None):
         self.dashboard = dashboard
-        self.ai_engine = get_ai_engine()
-        self.executor = get_executor()
-        self.voice_engine = get_voice_engine()
-        self.running = False
-        self._thread: Optional[threading.Thread] = None
+        self.pipeline = ContentPipeline()
 
-        self.response_ready.connect(self._emit_response)
-        self.status_ready.connect(self._emit_status)
-        self.listening_ready.connect(self._emit_listening_state)
+    def handle_command(self, text: str) -> Dict[str, Any]:
+        command = (text or "").strip().lower()
 
-    def _emit_response(self, text: str):
-        if self.dashboard is not None:
-            self.dashboard.set_assistant_response(text)
+        if not command:
+            return {"status": "empty", "message": "No command received."}
 
-    def _emit_status(self, text: str):
-        if self.dashboard is not None:
-            self.dashboard.set_status_message(text)
+        if "status" in command or "health" in command:
+            system = SystemMonitor.get_status()
+            ollama = SystemMonitor.check_ollama()
+            return {
+                "status": "ok",
+                "type": "system_status",
+                "system": system,
+                "ollama": ollama,
+            }
 
-    def _emit_listening_state(self, is_listening: bool):
-        if self.dashboard is not None:
-            self.dashboard.set_listening_state(is_listening)
+        if "youtube" in command or "content" in command or "video idea" in command:
+            topic = self._extract_topic(command, default="AI automation workflow")
+            bundle = self.pipeline.build_bundle(topic)
+            return {
+                "status": "ok",
+                "type": "content_generation",
+                "topic": topic,
+                "bundle": bundle,
+            }
+
+        if "image" in command:
+            topic = self._extract_topic(command, default="futuristic dashboard")
+            result = self.pipeline.image_generator.generate(topic)
+            return {
+                "status": "ok",
+                "type": "image_generation",
+                "topic": topic,
+                "result": result,
+            }
+
+        if "blender" in command or "3d" in command:
+            topic = self._extract_topic(command, default="futuristic robot")
+            result = self.pipeline.blender_generator.create_asset(topic)
+            return {
+                "status": "ok",
+                "type": "blender_generation",
+                "topic": topic,
+                "result": result,
+            }
+
+        return {
+            "status": "ok",
+            "type": "fallback",
+            "message": f"I can help with that: {text}",
+        }
+
+    def _extract_topic(self, command: str, default: str) -> str:
+        cleaned = command.replace("create", "").replace("generate", "").replace("make", "")
+        cleaned = cleaned.replace("youtube", "").replace("image", "").replace("blender", "").replace("3d", "")
+        cleaned = cleaned.replace("video", "").replace("content", "")
+        cleaned = " ".join(cleaned.split())
+        return cleaned.strip() or default
 
     def start(self):
-        """Start the assistant background voice loop."""
-        if self.running:
-            return
-        self.running = True
-        self.status_ready.emit("System online")
-        self.listening_ready.emit(True)
-        self._thread = threading.Thread(target=self._voice_loop, daemon=True)
-        self._thread.start()
-
-    def stop(self):
-        """Stop the assistant voice loop."""
-        self.running = False
-        self.listening_ready.emit(False)
-        self.status_ready.emit("System standby")
-
-    def handle_text(self, text: str):
-        """Handle a recognized text transcription."""
-        if not text:
-            return
-
-        text = text.strip()
-        self.status_ready.emit(f"Processing: {text}")
-        self.response_ready.emit(f"You said: {text}")
-
-        result = self.executor.execute(text)
-
-        if not result:
-            result = self.ai_engine.process_command(text)
-
-        self.response_ready.emit(result)
-        self.status_ready.emit("Ready")
-
-    def _voice_loop(self):
-        """Background loop that listens for speech and processes it."""
-        while self.running:
-            try:
-                spoken = self.voice_engine.listen(timeout=8)
-                if spoken:
-                    self.handle_text(spoken)
-            except Exception:
-                continue
-
-    def speak(self, text: str):
-        """Speak a response to the user."""
-        try:
-            self.voice_engine.speak(text)
-        except Exception:
-            pass
+        if self.dashboard is not None:
+            self.dashboard.set_assistant_response("Assistant online and ready")
+        return True
