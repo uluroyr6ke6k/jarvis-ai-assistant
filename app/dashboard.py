@@ -1,4 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton
+from __future__ import annotations
+
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QTextEdit
 from PyQt6.QtCore import QTimer, Qt
 
 from core.model_provider import ModelProvider
@@ -17,7 +19,8 @@ class JarvisDashboard(QWidget):
         self.cpu_label = None
         self.memory_label = None
         self.disk_label = None
-        self.ai_status_label = None
+        self.last_command_label = None
+        self.task_log = None
         self.setStyleSheet('''
             QWidget {
                 background: #050d1d;
@@ -78,6 +81,13 @@ class JarvisDashboard(QWidget):
                 border-radius: 12px;
                 padding: 10px;
             }
+            QTextEdit {
+                background: rgba(4, 17, 29, 0.9);
+                border: 2px solid #00d0ff;
+                border-radius: 10px;
+                color: #dfefff;
+                padding: 8px;
+            }
         ''')
         self.build_ui()
         self.start_clock()
@@ -107,10 +117,7 @@ class JarvisDashboard(QWidget):
         brand.setAlignment(Qt.AlignmentFlag.AlignCenter)
         panel_layout.addWidget(brand)
 
-        nav_items = [
-            "Home", "Voice", "Control", "Files", "Applications",
-            "Internet", "Settings"
-        ]
+        nav_items = ["Home", "Voice", "Control", "Files", "Applications", "Internet", "Settings"]
         for item in nav_items:
             btn = QPushButton(item)
             btn.setProperty("class", "nav-btn")
@@ -151,7 +158,6 @@ class JarvisDashboard(QWidget):
         weather = self.create_weather_card()
         system_status = self.create_system_status_card()
         voice_block = self.create_voice_block()
-
         middle_grid.addWidget(weather, 0, 0)
         middle_grid.addWidget(system_status, 0, 1)
         middle_grid.addWidget(voice_block, 0, 2)
@@ -183,94 +189,46 @@ class JarvisDashboard(QWidget):
         return panel
 
     def create_weather_card(self):
-        widget = QWidget()
-        widget.setProperty("class", "status-box")
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(12, 12, 12, 12)
-
-        title = QLabel("WEATHER")
-        title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;")
+        widget = QWidget(); widget.setProperty("class", "status-box")
+        layout = QVBoxLayout(widget); layout.setContentsMargins(12, 12, 12, 12)
+        title = QLabel("WEATHER"); title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;")
         layout.addWidget(title)
-
-        temp = QLabel("27°")
-        temp.setProperty("class", "big-number")
-        layout.addWidget(temp)
-
-        city = QLabel("Mostly Sunny")
-        city.setStyleSheet("font-size: 16px; color: #cbeaff;")
-        layout.addWidget(city)
-
-        detail = QLabel("Lagos, Nigeria\nH: 32° | L: 24°")
-        detail.setStyleSheet("color: #bfefff; font-size: 12px; line-height: 1.7;")
-        layout.addWidget(detail)
+        temp = QLabel("27°"); temp.setProperty("class", "big-number"); layout.addWidget(temp)
+        city = QLabel("Mostly Sunny"); city.setStyleSheet("font-size: 16px; color: #cbeaff;"); layout.addWidget(city)
+        detail = QLabel("Lagos, Nigeria\nH: 32° | L: 24°"); detail.setStyleSheet("color: #bfefff; font-size: 12px; line-height: 1.7;"); layout.addWidget(detail)
         return widget
 
     def create_system_status_card(self):
-        widget = QWidget()
-        widget.setProperty("class", "status-box")
+        widget = QWidget(); widget.setProperty("class", "status-box")
         layout = QVBoxLayout(widget)
-        title = QLabel("SYSTEM STATUS")
-        title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;")
-        layout.addWidget(title)
-
-        bars = [
-            ("Disk Usage", "0%"),
-            ("CPU", "0%"),
-            ("Memory", "0%"),
-        ]
+        title = QLabel("SYSTEM STATUS"); title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;"); layout.addWidget(title)
+        bars = [("Disk Usage", "0%"), ("CPU", "0%"), ("Memory", "0%")]
         for label, percent in bars:
-            row = QWidget()
-            row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            l = QLabel(label)
-            l.setStyleSheet("font-size: 12px; color: #dfefff;")
+            row = QWidget(); row_layout = QHBoxLayout(row); row_layout.setContentsMargins(0, 0, 0, 0)
+            l = QLabel(label); l.setStyleSheet("font-size: 12px; color: #dfefff;")
             if label == "Disk Usage":
-                v = QLabel(percent)
-                self.disk_label = v
+                v = QLabel(percent); self.disk_label = v
             elif label == "CPU":
-                v = QLabel(percent)
-                self.cpu_label = v
+                v = QLabel(percent); self.cpu_label = v
             else:
-                v = QLabel(percent)
-                self.memory_label = v
+                v = QLabel(percent); self.memory_label = v
             v.setStyleSheet("font-size: 12px; color: #82ecff;")
-            row_layout.addWidget(l)
-            row_layout.addStretch()
-            row_layout.addWidget(v)
-            layout.addWidget(row)
+            row_layout.addWidget(l); row_layout.addStretch(); row_layout.addWidget(v); layout.addWidget(row)
         return widget
 
     def create_voice_block(self):
-        widget = QWidget()
-        widget.setProperty("class", "status-box")
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(12, 12, 12, 12)
-
-        title = QLabel("VOICE RECOGNITION")
-        title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;")
-        layout.addWidget(title)
-
-        sound = QLabel("◉◉◉◉◉◉")
-        sound.setStyleSheet("color: #8be9ff; font-size: 24px; letter-spacing: 3px;")
-        sound.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(sound)
-
-        status = QLabel("LISTENING...")
-        status.setObjectName("voiceStatus")
-        self.listening_label = status
-        status.setStyleSheet("color: #8be9ff; font-size: 14px; letter-spacing: 2px;")
-        status.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(status)
+        widget = QWidget(); widget.setProperty("class", "status-box")
+        layout = QVBoxLayout(widget); layout.setContentsMargins(12, 12, 12, 12)
+        title = QLabel("VOICE RECOGNITION"); title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;"); layout.addWidget(title)
+        sound = QLabel("◉◉◉◉◉◉"); sound.setStyleSheet("color: #8be9ff; font-size: 24px; letter-spacing: 3px;"); sound.setAlignment(Qt.AlignmentFlag.AlignCenter); layout.addWidget(sound)
+        status = QLabel("LISTENING..."); status.setObjectName("voiceStatus"); self.listening_label = status
+        status.setStyleSheet("color: #8be9ff; font-size: 14px; letter-spacing: 2px;"); status.setAlignment(Qt.AlignmentFlag.AlignCenter); layout.addWidget(status)
         return widget
 
     def create_hologram_core(self):
-        widget = QWidget()
-        widget.setProperty("class", "status-box")
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(20, 20, 20, 20)
-
-        core = QLabel("J.A.R.V.I.S.\nONLINE")
-        core.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        widget = QWidget(); widget.setProperty("class", "status-box")
+        layout = QVBoxLayout(widget); layout.setContentsMargins(20, 20, 20, 20)
+        core = QLabel("J.A.R.V.I.S.\nONLINE"); core.setAlignment(Qt.AlignmentFlag.AlignCenter)
         core.setStyleSheet('''
             color: #c7f7ff;
             font-size: 34px;
@@ -282,151 +240,66 @@ class JarvisDashboard(QWidget):
             min-height: 340px;
             min-width: 340px;
         ''')
-        self.assistant_label = core
-        layout.addWidget(core)
+        self.assistant_label = core; layout.addWidget(core)
         return widget
 
     def create_live_news(self):
-        widget = QWidget()
-        widget.setProperty("class", "status-box")
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(12, 12, 12, 12)
-
-        title = QLabel("LIVE NEWS")
-        title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;")
-        layout.addWidget(title)
-
-        items = [
-            "Global markets show steady growth...",
-            "New AI breakthrough boosts productivity...",
-            "Health experts recommend daily movement...",
-        ]
-        for item in items:
-            label = QLabel("• " + item)
-            label.setStyleSheet("color: #dfefff; font-size: 12px;")
-            layout.addWidget(label)
+        widget = QWidget(); widget.setProperty("class", "status-box")
+        layout = QVBoxLayout(widget); layout.setContentsMargins(12, 12, 12, 12)
+        title = QLabel("LIVE NEWS"); title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;"); layout.addWidget(title)
+        for item in ["Global markets show steady growth...", "New AI breakthrough boosts productivity...", "Health experts recommend daily movement..."]:
+            label = QLabel("• " + item); label.setStyleSheet("color: #dfefff; font-size: 12px;"); layout.addWidget(label)
         return widget
 
     def create_voice_prompt(self):
-        widget = QWidget()
-        widget.setProperty("class", "status-box")
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(16, 16, 16, 16)
+        widget = QWidget(); widget.setProperty("class", "status-box")
+        layout = QVBoxLayout(widget); layout.setContentsMargins(16, 16, 16, 16)
+        mic = QLabel("🎙"); mic.setAlignment(Qt.AlignmentFlag.AlignCenter); mic.setStyleSheet("font-size: 32px; color: #94f0ff;"); layout.addWidget(mic)
+        prompt = QLabel("How can I help you today?"); prompt.setObjectName("promptText"); self.status_label = prompt
+        prompt.setStyleSheet("color: #dff7ff; font-size: 18px; letter-spacing: 1px;"); prompt.setAlignment(Qt.AlignmentFlag.AlignCenter); layout.addWidget(prompt)
 
-        mic = QLabel("🎙")
-        mic.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mic.setStyleSheet("font-size: 32px; color: #94f0ff;")
-        layout.addWidget(mic)
-
-        prompt = QLabel("How can I help you today?")
-        prompt.setObjectName("promptText")
-        self.status_label = prompt
-        prompt.setStyleSheet("color: #dff7ff; font-size: 18px; letter-spacing: 1px;")
-        prompt.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(prompt)
+        command_box = QTextEdit(); command_box.setPlaceholderText("Type a command or ask J.A.R.V.I.S..."); command_box.setReadOnly(False)
+        command_box.setFixedHeight(80)
+        self.task_log = command_box
+        layout.addWidget(command_box)
         return widget
 
     def create_schedule_card(self):
-        widget = QWidget()
-        widget.setProperty("class", "status-box")
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(10, 10, 10, 10)
-
-        title = QLabel("TODAY'S SCHEDULE")
-        title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;")
-        layout.addWidget(title)
-
-        entries = [
-            ("08:00", "Morning Routine"),
-            ("10:00", "Work on E-book"),
-            ("13:00", "Lunch Break"),
-            ("16:00", "YouTube Content"),
-        ]
-        for time_text, label_text in entries:
-            row = QWidget()
-            row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-
-            key = QLabel(time_text)
-            key.setStyleSheet("font-size: 12px; color: #bdecff;")
-            value = QLabel(label_text)
-            value.setStyleSheet("font-size: 12px; color: #dfefff;")
-            row_layout.addWidget(key)
-            row_layout.addWidget(value)
-            row_layout.addStretch()
-            layout.addWidget(row)
+        widget = QWidget(); widget.setProperty("class", "status-box")
+        layout = QVBoxLayout(widget); layout.setContentsMargins(10, 10, 10, 10)
+        title = QLabel("TODAY'S SCHEDULE"); title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;"); layout.addWidget(title)
+        for time_text, label_text in [("08:00", "Morning Routine"), ("10:00", "Work on E-book"), ("13:00", "Lunch Break"), ("16:00", "YouTube Content")]:
+            row = QWidget(); row_layout = QHBoxLayout(row); row_layout.setContentsMargins(0, 0, 0, 0)
+            key = QLabel(time_text); key.setStyleSheet("font-size: 12px; color: #bdecff;")
+            value = QLabel(label_text); value.setStyleSheet("font-size: 12px; color: #dfefff;")
+            row_layout.addWidget(key); row_layout.addWidget(value); row_layout.addStretch(); layout.addWidget(row)
         return widget
 
     def create_recent_activity(self):
-        widget = QWidget()
-        widget.setProperty("class", "status-box")
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(10, 10, 10, 10)
-
-        title = QLabel("RECENT ACTIVITY")
-        title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;")
-        layout.addWidget(title)
-
-        rows = [
-            ("Opened: YouTube", "2 mins ago"),
-            ("Edited: The Welles Blueprint.pdf", "12 mins ago"),
-            ("Visited: ChatGPT", "28 mins ago"),
-        ]
-        for activity, when in rows:
-            row = QWidget()
-            row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            a = QLabel(activity)
-            a.setStyleSheet("font-size: 11px; color: #dfefff;")
-            w = QLabel(when)
-            w.setStyleSheet("font-size: 10px; color: #8fe3ff;")
-            row_layout.addWidget(a)
-            row_layout.addStretch()
-            row_layout.addWidget(w)
-            layout.addWidget(row)
+        widget = QWidget(); widget.setProperty("class", "status-box")
+        layout = QVBoxLayout(widget); layout.setContentsMargins(10, 10, 10, 10)
+        title = QLabel("RECENT ACTIVITY"); title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;"); layout.addWidget(title)
+        for activity, when in [("Opened: YouTube", "2 mins ago"), ("Edited: The Welles Blueprint.pdf", "12 mins ago"), ("Visited: ChatGPT", "28 mins ago")]:
+            row = QWidget(); row_layout = QHBoxLayout(row); row_layout.setContentsMargins(0, 0, 0, 0)
+            a = QLabel(activity); a.setStyleSheet("font-size: 11px; color: #dfefff;")
+            w = QLabel(when); w.setStyleSheet("font-size: 10px; color: #8fe3ff;")
+            row_layout.addWidget(a); row_layout.addStretch(); row_layout.addWidget(w); layout.addWidget(row)
         return widget
 
     def create_commands_panel(self):
-        widget = QWidget()
-        widget.setProperty("class", "status-box")
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(10, 10, 10, 10)
-
-        title = QLabel("VOICE COMMANDS")
-        title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;")
-        layout.addWidget(title)
-
-        commands = [
-            '"Open YouTube"',
-            '"Show my files"',
-            '"Turn on dark mode"',
-            '"What\'s the weather?"',
-            '"Take a screenshot"',
-        ]
-        for cmd in commands:
-            label = QLabel(cmd)
-            label.setStyleSheet("font-size: 12px; color: #dfefff;")
-            layout.addWidget(label)
+        widget = QWidget(); widget.setProperty("class", "status-box")
+        layout = QVBoxLayout(widget); layout.setContentsMargins(10, 10, 10, 10)
+        title = QLabel("VOICE COMMANDS"); title.setStyleSheet("color: #79dfff; letter-spacing: 2px; font-size: 14px;"); layout.addWidget(title)
+        for cmd in ['"Open YouTube"', '"Show my files"', '"Take a screenshot"', '"What\'s the weather?"', '"Remember my preference"']:
+            label = QLabel(cmd); label.setStyleSheet("font-size: 12px; color: #dfefff;"); layout.addWidget(label)
         return widget
 
     def create_shortcuts_panel(self):
-        widget = QWidget()
-        widget.setProperty("class", "status-box")
-        layout = QGridLayout(widget)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
-
-        items = [
-            ("Open Browser", "💻"),
-            ("Open Files", "📁"),
-            ("Control Music", "🎵"),
-            ("Take Screenshot", "📷"),
-            ("Shutdown", "⏻"),
-            ("Restart", "↻"),
-        ]
+        widget = QWidget(); widget.setProperty("class", "status-box")
+        layout = QGridLayout(widget); layout.setContentsMargins(10, 10, 10, 10); layout.setSpacing(10)
+        items = [("Open Browser", "💻"), ("Open Files", "📁"), ("Control Music", "🎵"), ("Take Screenshot", "📷"), ("Shutdown", "⏻"), ("Restart", "↻")]
         for idx, (text, icon) in enumerate(items):
-            btn = QPushButton(f"{icon}\n{text}")
-            btn.setStyleSheet('''
+            btn = QPushButton(f"{icon}\n{text}"); btn.setStyleSheet('''
                 QPushButton {
                     background: rgba(13, 38, 55, 0.8);
                     border: 2px solid #00d0ff;
@@ -435,18 +308,14 @@ class JarvisDashboard(QWidget):
                     min-height: 70px;
                     font-size: 10px;
                 }
-            ''')
-            layout.addWidget(btn, idx // 3, idx % 3)
+            '''); layout.addWidget(btn, idx // 3, idx % 3)
         return widget
 
     def refresh_status(self):
         metrics = SystemMonitor.get_status()
-        if self.cpu_label is not None:
-            self.cpu_label.setText(f"{metrics['cpu']:.0f}%")
-        if self.memory_label is not None:
-            self.memory_label.setText(f"{metrics['memory']:.0f}%")
-        if self.disk_label is not None:
-            self.disk_label.setText(f"{metrics['disk']:.0f}%")
+        if self.cpu_label is not None: self.cpu_label.setText(f"{metrics['cpu']:.0f}%")
+        if self.memory_label is not None: self.memory_label.setText(f"{metrics['memory']:.0f}%")
+        if self.disk_label is not None: self.disk_label.setText(f"{metrics['disk']:.0f}%")
 
         local_ai_ready = self.model_provider.is_available()
         if self.listening_label is not None:
@@ -468,6 +337,12 @@ class JarvisDashboard(QWidget):
         if self.listening_label is not None:
             self.listening_label.setText("LISTENING..." if is_listening else "STANDBY")
 
+    def set_last_command(self, text: str):
+        if self.last_command_label is not None:
+            self.last_command_label.setText(text)
+        if self.task_log is not None:
+            self.task_log.setPlainText(text)
+
     def start_clock(self):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_clock)
@@ -475,20 +350,14 @@ class JarvisDashboard(QWidget):
 
     def update_clock(self):
         from datetime import datetime
-        now = datetime.now()
-        time_str = now.strftime("%H:%M")
+        now = datetime.now(); time_str = now.strftime("%H:%M")
         label = self.findChild(QLabel, "timeLabel")
-        if label is not None:
-            label.setText(time_str)
-        if now.second % 5 == 0:
-            self.refresh_status()
+        if label is not None: label.setText(time_str)
+        if now.second % 5 == 0: self.refresh_status()
 
 
 if __name__ == "__main__":
     import sys
     from PyQt6.QtWidgets import QApplication
     app = QApplication(sys.argv)
-    window = JarvisDashboard()
-    window.resize(1600, 900)
-    window.show()
-    sys.exit(app.exec())
+    window = JarvisDashboard(); window.resize(1600, 900); window.show(); sys.exit(app.exec())
