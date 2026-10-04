@@ -32,6 +32,7 @@ def main():
         window.set_assistant_response("Local AI offline")
 
     assistant = AssistantController(dashboard=window)
+    window.bind_command_handler(lambda text: assistant.process_text(text))
     assistant.start()
 
     sys.exit(app.exec())
